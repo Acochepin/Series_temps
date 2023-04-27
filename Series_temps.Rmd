@@ -101,7 +101,8 @@ dprod <- diff(prod,1)
 plot(cbind(dprod))
 ```
 ```{r}
-summary(lm(dprod ~ dates[-1]))
+lt <- lm(dprod ~ dates[-1])
+summary(lt)
 ```
 
 ```{r}
@@ -116,6 +117,7 @@ par(mfrow=c(1,2))
 acf(x);pacf(x)
 Acf(x);Pacf(x)
 ```
+
 ```{r}
 signif <- function(estim){
   coef <- estim$coef
@@ -149,11 +151,17 @@ pmax = 9
 qmax = 8
 
 armamodels <- armamodelchoice(pmax,qmax) #estime tous les arima (patienter...)
-selec <- armamodels[armamodels[,"ok"]==1&!is.na(armamodels[,"ok"]),] #mod`eles bien ajust´es et valides
+selec <- armamodels[armamodels[,"ok"]==1&!is.na(armamodels[,"ok"]),] #modèles bien ajustés et valides
 selec
 ```
 
 ```{r}
+pqs <- apply(selec,1,function(row) list("p"=as.numeric(row[1]),"q"=as.numeric(row[2])))
+names(pqs) <- paste0("arma(",selec[,1],",",selec[,2],")")
+models <- lapply(pqs,function(pq) arima(x,c(pq[["p"]],0,pq[["q"]])))
+vapply(models, FUN.VALUE=numeric(2), function(m) c("AIC"=AIC(m),"BIC"=BIC(m)))
 
+AIC
 ```
 
+-> ARMA (1,1), ARIMA (1,1,1)
