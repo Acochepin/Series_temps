@@ -15,6 +15,7 @@ library(readr)
 library(tidyverse)
 library(pander)
 require(fUnitRoots)
+require (forecast)
 ```
 
 ```{r}
@@ -36,7 +37,7 @@ data$prod <- as.numeric (data$prod)
 
 dates_char <- as.character(data$dates)
 dates_char[1];dates_char[length(dates_char)]
-dates <- as.yearmon(seq(from=2002+12/12,to=2020+1/12,by=1/12))
+dates <- as.yearmon(seq(from=1990+1/12,to=2008+1/12,by=1/12))
 
 prod <- zoo(data$prod,order.by=dates)
 
@@ -75,9 +76,6 @@ Qtests(adf@test$lm$residuals, 24, fitdf = length(adf@test$lm$coefficients))
 ```
 
 ```{r}
-Qtests(adf@test$lm$residuals, 24, fitdf = length(adf@test$lm$coefficients))
-
-
 adfTest_valid <- function(series, kmax, type){
   k <- 0
   noautocorr <- 0
@@ -98,4 +96,64 @@ Qtests(adf@test$lm$residuals, 24, fitdf = length(adf@test$lm$coefficients))
 adf
 ```
 
+```{r}
+dprod <- diff(prod,1)
+plot(cbind(dprod))
+```
+```{r}
+summary(lm(dprod ~ dates[-1]))
+```
+
+```{r}
+adf <- adfTest_valid(dprod,24,type="nc")
+adf
+```
+## Partie 2
+
+```{r}
+x <- dprod
+par(mfrow=c(1,2))
+acf(x);pacf(x)
+Acf(x);Pacf(x)
+```
+```{r}
+signif <- function(estim){
+  coef <- estim$coef
+  se <- sqrt(diag(estim$var.coef))
+  t <- coef/se
+  pval <- (1-pnorm(abs(t)))*2
+  return(rbind(coef,se,pval))
+}
+
+modelchoice <- function(p,q,data=x, k=24){
+  estim <- try(arima(data, c(p,1,q),optim.control=list(maxit=20000)))
+  if (class(estim)=="try-error") return(c("p"=p,"q"=q,"arsignif"=NA,"masignif"=NA,"resnocorr"=NA, "ok"=NA))
+  arsignif <- if (p==0) NA else signif(estim)[3,p]<=0.05
+  masignif <- if (q==0) NA else signif(estim)[3,p+q]<=0.05
+  resnocorr <- sum(Qtests(estim$residuals,24,length(estim$coef)-1)[,2]<=0.05,na.rm=T)==0
+  checks <- c(arsignif,masignif,resnocorr)
+  ok <- as.numeric(sum(checks,na.rm=T)==(3-sum(is.na(checks))))
+  return(c("p"=p,"q"=q,"arsignif"=arsignif,"masignif"=masignif,"resnocorr"=resnocorr,"ok"=ok))
+}
+## fonction pour estimer et v´erifier tous les arima(p,q) avec p<=pmax et q<=max
+armamodelchoice <- function(pmax,qmax) {
+  pqs <- expand.grid(0:pmax,0:qmax) 
+  t(apply(matrix(1:dim(pqs)[1]),1,function(row) {
+    p <- pqs[row,1]; q <- pqs[row,2]
+    cat(paste0("Computing ARMA(",p,",",q,") \n"))
+    modelchoice(p,q)
+  }))
+}
+
+pmax = 9
+qmax = 8
+
+armamodels <- armamodelchoice(pmax,qmax) #estime tous les arima (patienter...)
+selec <- armamodels[armamodels[,"ok"]==1&!is.na(armamodels[,"ok"]),] #mod`eles bien ajust´es et valides
+selec
+```
+
+```{r}
+
+```
 
