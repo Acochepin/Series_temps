@@ -1,0 +1,16 @@
+---
+title: "Séries bonbons"
+output: pdf_document
+date: "2023-04-27"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+datafile <- "valeurs_mensuelles.csv"
+
+data <- read.csv(datafile, sep =";")
+```
+
