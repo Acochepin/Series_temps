@@ -165,3 +165,10 @@ AIC
 ```
 
 -> ARMA (1,1), ARIMA (1,1,1)
+
+```{r}
+arima_fit <- arima (x, c(1,1,1))
+arima_fit
+```
+Modèle : 
+(1 + 0,42B)(1 - B)Xt = (1 + 0,98B)et
